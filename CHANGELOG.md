@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- Fix false "afdocs failed" message — `afdocs check` exits 1 when it finds failures, which is expected
+
 ## 1.4.0
 
 - Add Vercel Agent Readability benchmark (`@vercel/agent-readability`)

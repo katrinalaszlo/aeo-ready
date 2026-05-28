@@ -169,7 +169,9 @@ async function promptFix(result, dir) {
         stdio: "inherit",
       });
     } catch (err) {
-      console.log(chalk.red(`\n  afdocs failed: ${err.message}\n`));
+      if (err.status !== 1) {
+        console.log(chalk.red(`\n  afdocs failed: ${err.message}\n`));
+      }
     }
   }
 
