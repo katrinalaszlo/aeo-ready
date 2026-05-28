@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0
+
+- Smart auto-fix engine — "Fix now?" actually fixes things
+- Auto-creates agents.txt, sitemap.md, patches robots.txt for AI bots, scaffolds llms.txt
+- Deduplicates overlapping failures across all 5 benchmarks into unified fix actions
+- Prints actionable manual instructions for server-config and platform-specific issues
+- Requires `--dir` for file-based fixes (won't blindly write to CWD)
+
 ## 1.4.1
 
 - Fix false "afdocs failed" message — `afdocs check` exits 1 when it finds failures, which is expected

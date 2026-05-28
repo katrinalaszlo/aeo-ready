@@ -88,7 +88,12 @@ With --dir: agentic-seo 92/100 (A)
   Fix now? [y/N]
 ```
 
-Say `y` and it runs `npx agentic-seo init` to scaffold missing files (llms.txt, AGENTS.md, skill.md), then `npx afdocs` for Fern issues. Non-interactive in CI (`--json` or non-TTY).
+Say `y` and aeo-ready analyzes failures across all 5 benchmarks, deduplicates overlapping issues, and fixes what it can:
+
+- **Auto-fixes** (with `--dir`): patches robots.txt for AI bots, creates agents.txt, generates sitemap.md, scaffolds llms.txt/AGENTS.md, adds missing pages to llms.txt
+- **Manual instructions**: prints actionable steps for server config (content negotiation, .md URLs, Vary header) and platform-specific issues
+
+Non-interactive in CI (`--json` or non-TTY).
 
 ## CI Mode
 
