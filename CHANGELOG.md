@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.2
+
+- Fix broken `afdocs` fix command — was calling `npx afdocs <url>` instead of `npx afdocs check <url>`
+- Fix shell injection in `promptFix` — switched `execSync` to `execFileSync`
+- Add test suite (`node --test`)
+- Add GitHub Actions CI
+
 ## 1.3.1
 
 - Add progress indicator during scan

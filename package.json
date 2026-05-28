@@ -1,6 +1,6 @@
 {
   "name": "aeo-ready",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "AEO benchmark aggregator. One scan, every score. Collects agentic-seo, Cloudflare, and Fern in one report.",
   "type": "module",
   "bin": {
