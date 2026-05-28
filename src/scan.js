@@ -9,7 +9,11 @@ export async function scan(opts) {
 
   if (!json) {
     console.log(chalk.bold("\n  aeo-ready") + chalk.dim(` — ${url}\n`));
-    console.log(chalk.dim("  Checking agentic-seo · Cloudflare · Fern...\n"));
+    console.log(
+      chalk.dim(
+        "  Checking agentic-seo · Cloudflare · Fern · Vercel · AgentGrade...\n",
+      ),
+    );
   }
 
   const benchmarks = await runAllBenchmarks(url, dir);
@@ -54,6 +58,12 @@ function collectScores(benchmarks) {
   }
   if (benchmarks.fern?.available) {
     scores.push(benchmarks.fern.score);
+  }
+  if (benchmarks.vercel?.available) {
+    scores.push(benchmarks.vercel.score);
+  }
+  if (benchmarks.agentgrade?.available) {
+    scores.push(benchmarks.agentgrade.score);
   }
   return scores;
 }

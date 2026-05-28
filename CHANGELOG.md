@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0
+
+- Add Vercel Agent Readability benchmark (`@vercel/agent-readability`)
+- Add AgentGrade benchmark (`agentgrade-cli`)
+- Scan now runs 5 benchmarks in parallel: agentic-seo, Cloudflare, Fern, Vercel, AgentGrade
+
 ## 1.3.2
 
 - Fix broken `afdocs` fix command — was calling `npx afdocs <url>` instead of `npx afdocs check <url>`

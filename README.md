@@ -17,6 +17,8 @@ Runs every major AEO (Agentic Engine Optimization) benchmark against your site i
 | **agentic-seo** (Addy Osmani) | Discovery, content structure, token economics, capability signaling, UX bridge | 10 |
 | **Cloudflare** (isitagentready.com) | Discoverability, content accessibility, bot access, API/MCP/A2A discovery, commerce | 19 |
 | **Fern** (afdocs) | llms.txt quality, markdown availability, page size, content structure, URL stability, auth | 23 |
+| **Vercel** (Agent Readability Spec) | Agent reachability, discoverability, markdown serving, HTML agent-friendliness | 25 |
+| **AgentGrade** (agentgrade.com) | MCP, payment protocols, identity standards, content negotiation, OpenAPI, infrastructure | 70+ |
 
 ## Usage
 
@@ -41,19 +43,19 @@ With --dir: agentic-seo 92/100 (A)
 ```
   aeo-ready — yoursite.com
 
+  Checking agentic-seo · Cloudflare · Fern · Vercel · AgentGrade...
+
   agentic-seo ·································· 91/100 A
     ✓ Discovery              25/25
     ◑ Content Structure      18/25
     ✓ Token Economics        25/25
     ✓ Capability Signaling   15/15
     ✓ UX Bridge               8/10
-    vs Cloudflare 55 · Supabase 52 · Vercel 48 · Stripe 17
 
   Cloudflare ···································· 4/5 B
     10 passed  2 failed
     ✗ robotsTxtAiRules  No rules for AI bots found
     ✗ contentSignals    No content signals in robots.txt
-    vs Cloudflare 5 · Vercel 4 · Supabase 3 · Stripe 2
 
   Fern ········································ 83/100 B
     9 passed  4 failed
@@ -61,14 +63,26 @@ With --dir: agentic-seo 92/100 (A)
     ✗ content-start-position   2 pages have content past 50%
     ✗ llms-txt-coverage        Covers 67% of sitemap
     ✗ markdown-content-parity  4 pages have content differences
-    vs Stripe 85 · Supabase 78 · Anthropic 72 · Vercel 60
+
+  Vercel ····································· 75/100 B
+    15 passed  5 failed
+    ✗ robots.txt               blocked: ccbot
+    ✗ Agent UA → markdown      returned HTML
+    ✗ .md URL → markdown       status 404
+    ✗ Frontmatter              no frontmatter found
+    ✗ Missing page → markdown  returned 404
+
+  AgentGrade ································ 81/100 B+
+    30 passed  10 failed
+    ✗ llms.txt linked from HTML
+    ✗ Accept: JSON returns JSON
+    ✗ Accept: text returns text
 
   ──────────────────────────────────────────────────
   Overall                                     85/100
 
   Next steps
-    npx agentic-seo init                          scaffold llms.txt, AGENTS.md
-    npx afdocs https://yoursite.com               4 Fern issues
+    npx afdocs check https://yoursite.com         4 Fern issues
     npx skills add katrinalaszlo/agent-serve      make your product agent-ready
 
   Fix now? [y/N]
@@ -96,7 +110,7 @@ npx aeo-ready history                          # show last 10 scans
 import { scan, getHistory } from "aeo-ready";
 
 const result = await scan({ url: "https://yoursite.com", dir: "./public", json: true });
-// result.averageScore, result.benchmarks.agenticSeo, .cloudflare, .fern
+// result.averageScore, result.benchmarks.agenticSeo, .cloudflare, .fern, .vercel, .agentgrade
 
 const history = getHistory(process.cwd());
 // history.scans — array of past scan results

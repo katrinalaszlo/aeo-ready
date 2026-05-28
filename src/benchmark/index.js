@@ -2,6 +2,8 @@ import chalk from "chalk";
 import { runBenchmark as runAgenticSeo } from "./agentic-seo.js";
 import { runCloudflare } from "./cloudflare.js";
 import { runFern } from "./fern.js";
+import { runVercel } from "./vercel.js";
+import { runAgentgrade } from "./agentgrade.js";
 
 const REFERENCE_SCORES = {
   agenticSeo: {
@@ -36,12 +38,16 @@ export async function runAllBenchmarks(target, dir) {
     runAgenticSeo(dir || target),
     isUrl ? runCloudflare(target) : Promise.resolve(null),
     isUrl ? runFern(target) : Promise.resolve(null),
+    isUrl ? runVercel(target) : Promise.resolve(null),
+    isUrl ? runAgentgrade(target) : Promise.resolve(null),
   ]);
 
   return {
     agenticSeo: results[0].status === "fulfilled" ? results[0].value : null,
     cloudflare: results[1].status === "fulfilled" ? results[1].value : null,
     fern: results[2].status === "fulfilled" ? results[2].value : null,
+    vercel: results[3].status === "fulfilled" ? results[3].value : null,
+    agentgrade: results[4].status === "fulfilled" ? results[4].value : null,
   };
 }
 
@@ -59,6 +65,12 @@ export function printBenchmarks(benchmarks) {
   }
   if (benchmarks.fern?.available) {
     printBenchmarkBlock("Fern", "fern", benchmarks.fern);
+  }
+  if (benchmarks.vercel?.available) {
+    printBenchmarkBlock("Vercel", "vercel", benchmarks.vercel);
+  }
+  if (benchmarks.agentgrade?.available) {
+    printBenchmarkBlock("AgentGrade", "agentgrade", benchmarks.agentgrade);
   }
 }
 
