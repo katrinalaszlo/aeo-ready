@@ -273,6 +273,48 @@ function generateAgentPrompt(result, recs) {
   return lines.join("\n");
 }
 
+function printPromptForTerminal(result, recs) {
+  let currentTier = null;
+  let num = 1;
+
+  console.log("");
+  for (const rec of recs) {
+    const tier = tierLabel(rec.priority);
+    if (tier !== currentTier) {
+      currentTier = tier;
+      const color =
+        rec.priority >= 3
+          ? chalk.red
+          : rec.priority >= 2
+            ? chalk.yellow
+            : chalk.dim;
+      if (num > 1) console.log("");
+      console.log(
+        `  ${color.bold(tier)} ${chalk.dim(`(${tierDescription(rec.priority)})`)}`,
+      );
+      console.log("");
+    }
+    const benchmarkList = rec.benchmarks
+      .map((b) => BENCHMARK_NAMES[b])
+      .join(" · ");
+    console.log(`    ${chalk.white.bold(`${num}.`)} ${rec.label}`);
+    if (rec.detail) {
+      console.log(`       ${chalk.dim(rec.detail)}`);
+    }
+    console.log(`       ${chalk.dim(benchmarkList)}`);
+    num++;
+  }
+
+  console.log("");
+  console.log(chalk.dim("  ─".repeat(25)));
+  console.log("");
+  console.log(
+    `  ${chalk.dim("Not every recommendation may apply — review and prioritize for your site.")}`,
+  );
+  console.log(`  ${chalk.dim(`Re-scan: npx aeo-ready scan ${result.url}`)}`);
+  console.log("");
+}
+
 function copyToClipboard(text) {
   try {
     execSync("pbcopy", { input: text, stdio: ["pipe", "pipe", "pipe"] });
@@ -339,14 +381,7 @@ export async function showRecommendations(result) {
     const answer = await ask(`  ${optStr} `);
 
     if (answer === "v") {
-      console.log("");
-      console.log(
-        prompt
-          .split("\n")
-          .map((line) => `  ${line}`)
-          .join("\n"),
-      );
-      console.log("");
+      printPromptForTerminal(result, recs);
     } else if (answer === "c") {
       const copied = copyToClipboard(prompt);
       if (copied) {
