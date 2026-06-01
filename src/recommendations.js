@@ -381,7 +381,14 @@ export async function showRecommendations(result) {
     const answer = await ask(`  ${optStr} `);
 
     if (answer === "v") {
-      printPromptForTerminal(result, recs);
+      console.log("");
+      console.log(
+        prompt
+          .split("\n")
+          .map((line) => `  ${line}`)
+          .join("\n"),
+      );
+      console.log("");
     } else if (answer === "c") {
       const copied = copyToClipboard(prompt);
       if (copied) {
