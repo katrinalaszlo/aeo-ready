@@ -318,9 +318,14 @@ export async function showRecommendations(result) {
       ? `${recs.length} recommendations (${highCount} high priority)`
       : `${recs.length} recommendations`;
 
-  console.log(`\n  ${chalk.bold(summary)}\n`);
-
   const prompt = generateAgentPrompt(result, recs);
+
+  if (!process.stdin.isTTY) {
+    console.log(`\n${prompt}\n`);
+    return;
+  }
+
+  console.log(`\n  ${chalk.bold(summary)}\n`);
 
   const optStr = [
     ["v", "View prompt"],
