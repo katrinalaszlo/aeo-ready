@@ -12,19 +12,29 @@ const KNOWN_FILES = [
   "skill.md",
   "agent-permissions.json",
   "agents.json",
+  "agents.txt",
+  "openapi.json",
   "sitemap.xml",
   ".well-known/ai-plugin.json",
+  ".well-known/agent-card.json",
+  ".well-known/mcp/server-card.json",
+  ".well-known/agent-skills/index.json",
 ];
 
-async function fetchText(url) {
+async function fetchText(url, headers) {
   try {
-    const res = await fetch(url, { redirect: "follow" });
+    const res = await fetch(url, { redirect: "follow", headers });
     if (!res.ok) return null;
     return await res.text();
-  } catch (err) {
-    console.warn(`Warning: failed to fetch ${url}: ${err.message}`);
+  } catch {
     return null;
   }
+}
+
+function saveToDisk(tempDir, relativePath, content) {
+  const filePath = join(tempDir, relativePath);
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileSync(filePath, content);
 }
 
 function parseSitemapUrls(xml, baseUrl) {
@@ -37,24 +47,70 @@ function parseSitemapUrls(xml, baseUrl) {
   return urls;
 }
 
-function urlToFilePath(url, baseUrl) {
+function urlToFilePath(url) {
   let path = new URL(url).pathname;
   if (path.endsWith("/")) path += "index.html";
   else if (!path.includes(".")) path += ".html";
   return path.replace(/^\//, "");
 }
 
+async function discoverSkillFiles(baseUrl, tempDir) {
+  const indexContent = await fetchText(
+    `${baseUrl}/.well-known/agent-skills/index.json`,
+  );
+  if (!indexContent) return;
+
+  let index;
+  try {
+    index = JSON.parse(indexContent);
+  } catch {
+    return;
+  }
+
+  const skills = index.skills || index;
+  if (!Array.isArray(skills)) return;
+
+  const fetches = [];
+  for (const skill of skills) {
+    const dir = skill.path || skill.id;
+    if (!dir) continue;
+
+    const base = `.well-known/agent-skills/${dir}`;
+    fetches.push(
+      fetchText(`${baseUrl}/${base}/SKILL.md`).then((content) => {
+        if (content) saveToDisk(tempDir, `${base}/SKILL.md`, content);
+      }),
+    );
+
+    const refs = skill.references || [];
+    for (const ref of refs) {
+      const refPath = typeof ref === "string" ? ref : ref.path || ref.file;
+      if (!refPath) continue;
+      fetches.push(
+        fetchText(`${baseUrl}/${base}/references/${refPath}`).then(
+          (content) => {
+            if (content)
+              saveToDisk(tempDir, `${base}/references/${refPath}`, content);
+          },
+        ),
+      );
+    }
+  }
+
+  await Promise.all(fetches);
+}
+
 async function fetchSiteToDir(baseUrl) {
   const tempDir = mkdtempSync(join(tmpdir(), "aeo-"));
 
-  for (const file of KNOWN_FILES) {
-    const content = await fetchText(`${baseUrl}/${file}`);
-    if (content) {
-      const filePath = join(tempDir, file);
-      mkdirSync(dirname(filePath), { recursive: true });
-      writeFileSync(filePath, content);
-    }
-  }
+  await Promise.all(
+    KNOWN_FILES.map(async (file) => {
+      const content = await fetchText(`${baseUrl}/${file}`);
+      if (content) saveToDisk(tempDir, file, content);
+    }),
+  );
+
+  await discoverSkillFiles(baseUrl, tempDir);
 
   const sitemap = await fetchText(`${baseUrl}/sitemap.xml`);
   if (!sitemap) return tempDir;
@@ -63,25 +119,27 @@ async function fetchSiteToDir(baseUrl) {
 
   await Promise.all(
     urls.map(async (url) => {
-      const path = urlToFilePath(url, baseUrl);
+      const path = urlToFilePath(url);
       if (KNOWN_FILES.includes(path)) return;
 
-      const html = await fetchText(url);
-      if (html) {
-        const htmlPath = join(tempDir, path);
-        mkdirSync(dirname(htmlPath), { recursive: true });
-        writeFileSync(htmlPath, html);
-      }
+      const [html, md] = await Promise.all([
+        fetchText(url),
+        fetchText(url, { Accept: "text/markdown" }),
+      ]);
 
-      const mdUrl = url
-        .replace(/\.html$/, ".md")
-        .replace(/\/?$/, (m) => (m === "/" ? "/index.md" : ".md"));
-      if (mdUrl !== url) {
-        const md = await fetchText(mdUrl);
-        if (md) {
-          const mdPath = join(tempDir, path.replace(/\.html$/, ".md"));
-          mkdirSync(dirname(mdPath), { recursive: true });
-          writeFileSync(mdPath, md);
+      if (html) saveToDisk(tempDir, path, html);
+
+      if (md && md !== html) {
+        saveToDisk(tempDir, path.replace(/\.html$/, ".md"), md);
+      } else {
+        const mdUrl = url
+          .replace(/\.html$/, ".md")
+          .replace(/\/?$/, (m) => (m === "/" ? "/index.md" : ".md"));
+        if (mdUrl !== url) {
+          const mdFallback = await fetchText(mdUrl);
+          if (mdFallback) {
+            saveToDisk(tempDir, path.replace(/\.html$/, ".md"), mdFallback);
+          }
         }
       }
     }),
