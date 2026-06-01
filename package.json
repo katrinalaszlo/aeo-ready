@@ -1,6 +1,6 @@
 {
   "name": "aeo-ready",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "AEO benchmark aggregator. One scan, every score. Collects agentic-seo, Cloudflare, Fern, Vercel, and AgentGrade in one report.",
   "type": "module",
   "bin": {
