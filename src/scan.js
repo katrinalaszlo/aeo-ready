@@ -37,7 +37,7 @@ export async function scan(opts) {
   await saveResult(result, baseDir);
 
   if (!json && averageScore < 100 && process.stdin.isTTY) {
-    await showRecommendations(result, dir);
+    await showRecommendations(result);
   }
 
   return result;

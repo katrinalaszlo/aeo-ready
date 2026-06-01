@@ -1,9 +1,6 @@
 import chalk from "chalk";
 import { execSync } from "child_process";
-import { existsSync } from "fs";
-import { join } from "path";
 import { createInterface } from "readline";
-import { runFixes } from "./fix.js";
 
 const BENCHMARK_NAMES = {
   cloudflare: "Cloudflare",
@@ -24,9 +21,11 @@ const RECOMMENDATION_MAP = [
     key: "llms-txt",
     label: "Create and link llms.txt",
     detail:
-      'Create llms.txt with site overview, then add <link rel="llms-txt" href="/llms.txt"> to your HTML <head>',
+      'Create llms.txt with site overview, then add <link rel="llms-txt" href="/llms.txt"> to your HTML <head>. Also add a <link rel="alternate" type="text/markdown"> on each page that has a markdown version.',
     match: (id) =>
-      /llms-txt|llms.*linked|llms-full.*linked|llms.*coverage/i.test(id),
+      /llms-txt|llms.*linked|llms-full.*linked|llms.*coverage|markdown link alternate/i.test(
+        id,
+      ),
   },
   {
     key: "agents-txt",
@@ -39,7 +38,7 @@ const RECOMMENDATION_MAP = [
     key: "content-negotiation",
     label: "Support content negotiation",
     detail:
-      "Return markdown when requests include Accept: text/markdown. Add Vary: Accept header for proper caching.",
+      "Return markdown when requests include Accept: text/markdown. Return the content type the client actually preferred, respecting order and q-values per RFC 9110. Add Vary: Accept header for caching.",
     match: (id) =>
       /content.negotiation|agent ua.*markdown|accept.*markdown|accept.*text.*returns|accept.*json.*returns|preferred content.type|^vary/i.test(
         id,
@@ -49,16 +48,18 @@ const RECOMMENDATION_MAP = [
     key: "md-urls",
     label: "Serve markdown at .md URLs",
     detail:
-      "Make pages available at .md extensions (e.g. /docs/page.md returns markdown)",
+      "Make pages available at .md extensions (e.g. /docs/page.md returns markdown). Missing pages should return markdown 404, not HTML.",
     match: (id) =>
-      /markdown.url.support|\.md.*url.*markdown|\.md url/i.test(id),
+      /markdown.url.support|\.md.*url.*markdown|\.md url|missing page.*markdown/i.test(
+        id,
+      ),
   },
   {
     key: "content-structure",
     label: "Improve content structure for agents",
     detail:
-      "Move nav/chrome below main content so agents find content earlier. Add frontmatter to markdown pages.",
-    match: (id) => /content.start.position|frontmatter/i.test(id),
+      "Move nav/chrome below main content so agents find content earlier. Add YAML frontmatter (title, description, date) to markdown pages.",
+    match: (id) => /content.start.position|^frontmatter$/i.test(id),
   },
   {
     key: "markdown-parity",
@@ -92,8 +93,9 @@ const RECOMMENDATION_MAP = [
     label: "Add identity and discovery protocols",
     detail:
       "Implement WebFinger, DID Document, A2A Agent Card, and/or WebMCP manifest for agent discovery",
+    optional: true,
     match: (id) =>
-      /webfinger|did document|nostr|at protocol|agent card|webmcp|apple app links|android asset links/i.test(
+      /webfinger|did document|nostr|at protocol|agent card.*published|agent card.*verified|webmcp|apple app links|android asset links/i.test(
         id,
       ),
   },
@@ -102,6 +104,7 @@ const RECOMMENDATION_MAP = [
     label: "Declare payment information",
     detail:
       "Add x-payment-info header to paid API operations for agent billing awareness",
+    apiOnly: true,
     match: (id) => /x-payment-info/i.test(id),
   },
   {
@@ -109,6 +112,7 @@ const RECOMMENDATION_MAP = [
     label: "Add skill.md reference",
     detail:
       "Create a skill.md file describing your API's capabilities for agent consumption",
+    apiOnly: true,
     match: (id) => /skill\.md/i.test(id),
   },
   {
@@ -116,26 +120,23 @@ const RECOMMENDATION_MAP = [
     label: "Return rate limit headers",
     detail:
       "Add X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset headers to API responses",
+    apiOnly: true,
     match: (id) => /rate limit/i.test(id),
   },
   {
     key: "signatures",
-    label: "Publish signatures directory",
+    label: "Publish signatures directory and public keys",
     detail:
-      "Serve /.well-known/http-message-signatures-directory for request verification",
-    match: (id) => /signatures directory|public keys/i.test(id),
-  },
-  {
-    key: "members",
-    label: "Declare team members",
-    detail: "Add a members array to your signatures directory or agent card",
-    match: (id) => /members declared/i.test(id),
+      "Serve /.well-known/http-message-signatures-directory with agent identity and public keys (RFC 9421)",
+    optional: true,
+    match: (id) =>
+      /signatures directory|public keys|members declared/i.test(id),
   },
   {
     key: "form-annotations",
     label: "Add form tool annotations",
     detail:
-      "Add tool-name and tool-description attributes to forms for agent understanding",
+      "Add tool-name and tool-description attributes to <form> elements for browser AI agents",
     match: (id) => /form tool annotations/i.test(id),
   },
   {
@@ -174,6 +175,8 @@ function buildRecommendations(result) {
             key: rec.key,
             label: rec.label,
             detail: rec.detail,
+            apiOnly: rec.apiOnly || false,
+            optional: rec.optional || false,
             benchmarks: new Set(),
             checks: [],
           });
@@ -255,38 +258,84 @@ function printRecommendations(recs) {
 }
 
 function generateAgentPrompt(result, recs) {
+  const core = recs.filter((r) => !r.apiOnly && !r.optional);
+  const optional = recs.filter((r) => r.optional && !r.apiOnly);
+  const apiOnly = recs.filter((r) => r.apiOnly);
+
   const lines = [];
   lines.push(
     `My site ${result.url} scored ${result.averageScore}/100 on aeo-ready (AEO readiness scanner).`,
   );
-  lines.push(`Fix these issues to improve AI/agent discoverability:\n`);
+  lines.push("Fix these issues to improve AI/agent discoverability.");
+  lines.push(
+    "Items are ordered by priority — issues flagged by multiple benchmarks are most important.\n",
+  );
 
-  let currentTier = null;
   let num = 1;
 
-  for (const rec of recs) {
-    const tier = tierLabel(rec.priority);
-    if (tier !== currentTier) {
-      currentTier = tier;
-      lines.push(`## ${tier} (${tierDescription(rec.priority)})`);
+  if (core.length > 0) {
+    let currentTier = null;
+    for (const rec of core) {
+      const tier = tierLabel(rec.priority);
+      if (tier !== currentTier) {
+        currentTier = tier;
+        lines.push(`## ${tier} (${tierDescription(rec.priority)})`);
+      }
+      const benchmarkList = rec.benchmarks
+        .map((b) => BENCHMARK_NAMES[b])
+        .join(", ");
+      lines.push(`${num}. ${rec.label} [${benchmarkList}]`);
+      if (rec.detail) {
+        lines.push(`   ${rec.detail}`);
+      }
+      num++;
     }
-    const benchmarkList = rec.benchmarks
-      .map((b) => BENCHMARK_NAMES[b])
-      .join(", ");
-    lines.push(`${num}. ${rec.label} [${benchmarkList}]`);
-    if (rec.detail) {
-      lines.push(`   ${rec.detail}`);
+  }
+
+  if (optional.length > 0) {
+    lines.push("");
+    lines.push("## Optional (advanced agent discovery)");
+    for (const rec of optional) {
+      const benchmarkList = rec.benchmarks
+        .map((b) => BENCHMARK_NAMES[b])
+        .join(", ");
+      lines.push(`${num}. ${rec.label} [${benchmarkList}]`);
+      if (rec.detail) {
+        lines.push(`   ${rec.detail}`);
+      }
+      num++;
     }
-    num++;
+  }
+
+  if (apiOnly.length > 0) {
+    lines.push("");
+    lines.push(
+      "## API-only (skip if this is not an API or developer platform)",
+    );
+    for (const rec of apiOnly) {
+      const benchmarkList = rec.benchmarks
+        .map((b) => BENCHMARK_NAMES[b])
+        .join(", ");
+      lines.push(`${num}. ${rec.label} [${benchmarkList}]`);
+      if (rec.detail) {
+        lines.push(`   ${rec.detail}`);
+      }
+      num++;
+    }
   }
 
   lines.push("");
+  lines.push("## Instructions");
   lines.push(
-    "For any issues that can't be fixed programmatically, outline them for me",
+    "- Fix what you can programmatically. For each fix, explain what you changed.",
   );
   lines.push(
-    "with clear step-by-step instructions on how to address them manually.",
+    "- For anything that requires infrastructure/config changes you can't make,",
   );
+  lines.push(
+    "  list it separately with step-by-step instructions I can follow manually.",
+  );
+  lines.push("- Skip API-only items if this site doesn't expose an API.");
   lines.push("");
   lines.push(`Re-scan after: npx aeo-ready scan ${result.url}`);
 
@@ -318,31 +367,6 @@ function copyToClipboard(text) {
   }
 }
 
-function detectLocalProject(dir) {
-  if (dir) return dir;
-  const cwd = process.cwd();
-  const indicators = [
-    "package.json",
-    "index.html",
-    "next.config.js",
-    "next.config.mjs",
-    "next.config.ts",
-    "nuxt.config.ts",
-    "astro.config.mjs",
-    "vite.config.ts",
-    "vite.config.js",
-    "gatsby-config.js",
-    "angular.json",
-    "svelte.config.js",
-    "remix.config.js",
-    "public",
-  ];
-  for (const f of indicators) {
-    if (existsSync(join(cwd, f))) return cwd;
-  }
-  return null;
-}
-
 function ask(question) {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
@@ -353,7 +377,7 @@ function ask(question) {
   });
 }
 
-export async function showRecommendations(result, dir) {
+export async function showRecommendations(result) {
   const recs = buildRecommendations(result);
   if (recs.length === 0) return;
 
@@ -365,14 +389,9 @@ export async function showRecommendations(result, dir) {
 
   console.log(`\n  ${chalk.bold(summary)}\n`);
 
-  const localDir = detectLocalProject(dir);
-
   const options = [];
-  options.push(["v", "View recommendations"]);
+  options.push(["v", "View"]);
   options.push(["c", "Copy prompt for AI agent"]);
-  if (localDir) {
-    options.push(["f", "Fix now"]);
-  }
   options.push(["q", "Done"]);
 
   const optStr = options
@@ -396,8 +415,6 @@ export async function showRecommendations(result, dir) {
         console.log(prompt);
         console.log("");
       }
-    } else if (answer === "f" && localDir) {
-      await runFixes(result, localDir);
       break;
     } else {
       break;
