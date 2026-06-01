@@ -1,8 +1,7 @@
 import chalk from "chalk";
-import { createInterface } from "readline";
 import { runAllBenchmarks, printBenchmarks } from "./benchmark/index.js";
 import { saveResult } from "./history/index.js";
-import { runFixes } from "./fix.js";
+import { showRecommendations } from "./recommendations.js";
 
 export async function scan(opts) {
   const { url, dir, json } = opts;
@@ -38,7 +37,7 @@ export async function scan(opts) {
   await saveResult(result, baseDir);
 
   if (!json && averageScore < 100 && process.stdin.isTTY) {
-    await promptFix(result, dir);
+    await showRecommendations(result, dir);
   }
 
   return result;
@@ -84,65 +83,4 @@ function printReport(result) {
   console.log(
     `  ${chalk.bold("Overall")}${" ".repeat(37)}${gc.bold(`${averageScore}/100`)}\n`,
   );
-
-  printNextSteps(result);
-}
-
-function printNextSteps(result) {
-  const { benchmarks, averageScore } = result;
-  const steps = [];
-
-  if (averageScore < 80) {
-    steps.push(["npx agentic-seo init", "scaffold llms.txt, AGENTS.md"]);
-  }
-
-  const cfFails =
-    benchmarks.cloudflare?.checks?.filter((c) => c.status === "fail") || [];
-  if (cfFails.length > 0) {
-    steps.push([
-      `Cloudflare: ${cfFails.length} failing`,
-      "see isitagentready.com",
-    ]);
-  }
-
-  const fernFails =
-    benchmarks.fern?.checks?.filter(
-      (c) => c.status === "fail" || c.status === "warn",
-    ) || [];
-  if (fernFails.length > 0) {
-    steps.push([
-      `npx afdocs check ${result.url}`,
-      `${fernFails.length} Fern issues`,
-    ]);
-  }
-
-  steps.push([
-    "npx skills add katrinalaszlo/agent-serve",
-    "make your product agent-ready",
-  ]);
-
-  if (steps.length > 0) {
-    console.log(chalk.bold("  Next steps\n"));
-    const maxCmd = Math.max(...steps.map(([cmd]) => cmd.length));
-    for (const [cmd, desc] of steps) {
-      console.log(`    ${cmd.padEnd(maxCmd + 4)}${chalk.dim(desc)}`);
-    }
-    console.log("");
-  }
-}
-
-function ask(question) {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim().toLowerCase());
-    });
-  });
-}
-
-async function promptFix(result, dir) {
-  const answer = await ask(chalk.bold("  Fix now? ") + chalk.dim("[y/N] "));
-  if (answer !== "y" && answer !== "yes") return;
-  await runFixes(result, dir);
 }

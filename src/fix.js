@@ -162,16 +162,11 @@ export async function runFixes(result, dir) {
   }
 
   const fixed = [];
-  const skipped = [];
   const manual = [];
 
   for (const [, action] of triggered) {
     if (!action.auto) {
       manual.push(action.label);
-      continue;
-    }
-    if (!dir) {
-      skipped.push(action.label);
       continue;
     }
     const r = await action.apply(dir, result);
@@ -187,16 +182,6 @@ export async function runFixes(result, dir) {
     );
     for (const f of fixed) {
       console.log(`    ${chalk.green("✓")} ${f}`);
-    }
-    console.log("");
-  }
-
-  if (skipped.length > 0) {
-    console.log(
-      chalk.bold("  Skipped") + chalk.dim(" (run with --dir to auto-fix):\n"),
-    );
-    for (const s of skipped) {
-      console.log(`    ${chalk.yellow("-")} ${s}`);
     }
     console.log("");
   }
