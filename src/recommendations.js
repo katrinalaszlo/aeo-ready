@@ -93,7 +93,6 @@ const RECOMMENDATION_MAP = [
     label: "Add identity and discovery protocols",
     detail:
       "Implement WebFinger, DID Document, A2A Agent Card, and/or WebMCP manifest for agent discovery",
-    optional: true,
     match: (id) =>
       /webfinger|did document|nostr|at protocol|agent card.*published|agent card.*verified|webmcp|apple app links|android asset links/i.test(
         id,
@@ -104,7 +103,6 @@ const RECOMMENDATION_MAP = [
     label: "Declare payment information",
     detail:
       "Add x-payment-info header to paid API operations for agent billing awareness",
-    apiOnly: true,
     match: (id) => /x-payment-info/i.test(id),
   },
   {
@@ -112,7 +110,6 @@ const RECOMMENDATION_MAP = [
     label: "Add skill.md reference",
     detail:
       "Create a skill.md file describing your API's capabilities for agent consumption",
-    apiOnly: true,
     match: (id) => /skill\.md/i.test(id),
   },
   {
@@ -120,7 +117,6 @@ const RECOMMENDATION_MAP = [
     label: "Return rate limit headers",
     detail:
       "Add X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset headers to API responses",
-    apiOnly: true,
     match: (id) => /rate limit/i.test(id),
   },
   {
@@ -128,7 +124,6 @@ const RECOMMENDATION_MAP = [
     label: "Publish signatures directory and public keys",
     detail:
       "Serve /.well-known/http-message-signatures-directory with agent identity and public keys (RFC 9421)",
-    optional: true,
     match: (id) =>
       /signatures directory|public keys|members declared/i.test(id),
   },
@@ -175,8 +170,6 @@ function buildRecommendations(result) {
             key: rec.key,
             label: rec.label,
             detail: rec.detail,
-            apiOnly: rec.apiOnly || false,
-            optional: rec.optional || false,
             benchmarks: new Set(),
             checks: [],
           });
@@ -228,100 +221,39 @@ function tierDescription(count) {
   return "flagged by 1 benchmark";
 }
 
-function printRecommendations(recs) {
-  let currentTier = null;
-  let num = 1;
-
-  console.log("");
-  for (const rec of recs) {
-    const tier = tierLabel(rec.priority);
-    if (tier !== currentTier) {
-      currentTier = tier;
-      const color =
-        rec.priority >= 3
-          ? chalk.red
-          : rec.priority >= 2
-            ? chalk.yellow
-            : chalk.dim;
-      console.log(
-        `  ${color.bold(tier)} ${chalk.dim(`(${tierDescription(rec.priority)})`)}`,
-      );
-    }
-    const benchmarkList = rec.benchmarks
-      .map((b) => BENCHMARK_NAMES[b])
-      .join(" · ");
-    console.log(`    ${chalk.dim(`${num}.`)} ${rec.label}`);
-    console.log(`       ${chalk.dim(benchmarkList)}`);
-    num++;
-  }
-  console.log("");
-}
-
 function generateAgentPrompt(result, recs) {
-  const core = recs.filter((r) => !r.apiOnly && !r.optional);
-  const optional = recs.filter((r) => r.optional && !r.apiOnly);
-  const apiOnly = recs.filter((r) => r.apiOnly);
-
   const lines = [];
   lines.push(
     `My site ${result.url} scored ${result.averageScore}/100 on aeo-ready (AEO readiness scanner).`,
   );
   lines.push("Fix these issues to improve AI/agent discoverability.");
   lines.push(
-    "Items are ordered by priority — issues flagged by multiple benchmarks are most important.\n",
+    "Items are ordered by priority — issues flagged by multiple benchmarks matter most.",
+  );
+  lines.push(
+    "This scan covers benchmarks across different site types (content sites, APIs, developer platforms).",
+  );
+  lines.push(
+    "Not every recommendation may apply to this site — review each and prioritize accordingly.\n",
   );
 
+  let currentTier = null;
   let num = 1;
 
-  if (core.length > 0) {
-    let currentTier = null;
-    for (const rec of core) {
-      const tier = tierLabel(rec.priority);
-      if (tier !== currentTier) {
-        currentTier = tier;
-        lines.push(`## ${tier} (${tierDescription(rec.priority)})`);
-      }
-      const benchmarkList = rec.benchmarks
-        .map((b) => BENCHMARK_NAMES[b])
-        .join(", ");
-      lines.push(`${num}. ${rec.label} [${benchmarkList}]`);
-      if (rec.detail) {
-        lines.push(`   ${rec.detail}`);
-      }
-      num++;
+  for (const rec of recs) {
+    const tier = tierLabel(rec.priority);
+    if (tier !== currentTier) {
+      currentTier = tier;
+      lines.push(`## ${tier} (${tierDescription(rec.priority)})`);
     }
-  }
-
-  if (optional.length > 0) {
-    lines.push("");
-    lines.push("## Optional (advanced agent discovery)");
-    for (const rec of optional) {
-      const benchmarkList = rec.benchmarks
-        .map((b) => BENCHMARK_NAMES[b])
-        .join(", ");
-      lines.push(`${num}. ${rec.label} [${benchmarkList}]`);
-      if (rec.detail) {
-        lines.push(`   ${rec.detail}`);
-      }
-      num++;
+    const benchmarkList = rec.benchmarks
+      .map((b) => BENCHMARK_NAMES[b])
+      .join(", ");
+    lines.push(`${num}. ${rec.label} [${benchmarkList}]`);
+    if (rec.detail) {
+      lines.push(`   ${rec.detail}`);
     }
-  }
-
-  if (apiOnly.length > 0) {
-    lines.push("");
-    lines.push(
-      "## API-only (skip if this is not an API or developer platform)",
-    );
-    for (const rec of apiOnly) {
-      const benchmarkList = rec.benchmarks
-        .map((b) => BENCHMARK_NAMES[b])
-        .join(", ");
-      lines.push(`${num}. ${rec.label} [${benchmarkList}]`);
-      if (rec.detail) {
-        lines.push(`   ${rec.detail}`);
-      }
-      num++;
-    }
+    num++;
   }
 
   lines.push("");
@@ -330,12 +262,11 @@ function generateAgentPrompt(result, recs) {
     "- Fix what you can programmatically. For each fix, explain what you changed.",
   );
   lines.push(
-    "- For anything that requires infrastructure/config changes you can't make,",
+    "- For anything that requires infrastructure or configuration changes you can't make,",
   );
   lines.push(
-    "  list it separately with step-by-step instructions I can follow manually.",
+    "  list it separately with clear step-by-step instructions I can follow manually.",
   );
-  lines.push("- Skip API-only items if this site doesn't expose an API.");
   lines.push("");
   lines.push(`Re-scan after: npx aeo-ready scan ${result.url}`);
 
@@ -389,12 +320,13 @@ export async function showRecommendations(result) {
 
   console.log(`\n  ${chalk.bold(summary)}\n`);
 
-  const options = [];
-  options.push(["v", "View"]);
-  options.push(["c", "Copy prompt for AI agent"]);
-  options.push(["q", "Done"]);
+  const prompt = generateAgentPrompt(result, recs);
 
-  const optStr = options
+  const optStr = [
+    ["v", "View prompt"],
+    ["c", "Copy prompt"],
+    ["q", "Done"],
+  ]
     .map(([key, label]) => `${chalk.bold(`[${key}]`)} ${label}`)
     .join("  ");
 
@@ -402,18 +334,20 @@ export async function showRecommendations(result) {
     const answer = await ask(`  ${optStr} `);
 
     if (answer === "v") {
-      printRecommendations(recs);
+      console.log("");
+      console.log(
+        prompt
+          .split("\n")
+          .map((line) => `  ${line}`)
+          .join("\n"),
+      );
+      console.log("");
     } else if (answer === "c") {
-      const prompt = generateAgentPrompt(result, recs);
       const copied = copyToClipboard(prompt);
       if (copied) {
         console.log(chalk.green("\n  Copied to clipboard.\n"));
       } else {
-        console.log(
-          chalk.dim("\n  Could not copy — here are the instructions:\n"),
-        );
-        console.log(prompt);
-        console.log("");
+        console.log(chalk.dim("\n  Could not copy to clipboard.\n"));
       }
       break;
     } else {
