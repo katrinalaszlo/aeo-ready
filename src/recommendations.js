@@ -18,6 +18,13 @@ const RECOMMENDATION_MAP = [
     match: (id) => /^robots\.txt$|robots.*blocked/i.test(id),
   },
   {
+    key: "links-resolve",
+    label: "Fix broken links in llms.txt",
+    detail:
+      "Some links in llms.txt point to pages that return errors or unexpected content types",
+    match: (id) => /llms-txt-links/i.test(id),
+  },
+  {
     key: "llms-txt",
     label: "Create and link llms.txt",
     detail:
@@ -133,13 +140,6 @@ const RECOMMENDATION_MAP = [
     detail:
       "Add tool-name and tool-description attributes to <form> elements for browser AI agents",
     match: (id) => /form tool annotations/i.test(id),
-  },
-  {
-    key: "links-resolve",
-    label: "Fix broken links in llms.txt",
-    detail:
-      "Some links in llms.txt point to pages that return errors or unexpected content types",
-    match: (id) => /llms-txt-links/i.test(id),
   },
 ];
 
