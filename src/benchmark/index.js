@@ -8,24 +8,23 @@ import { runAgentgrade } from "./agentgrade.js";
 const REFERENCE_SCORES = {
   agenticSeo: {
     Stripe: 17,
-    Vercel: 48,
-    Supabase: 52,
-    Cloudflare: 55,
-    Average: 25,
+    Cloudflare: 20,
+    Supabase: 20,
+    Average: 19,
   },
   cloudflare: {
-    Stripe: 2,
-    Vercel: 4,
-    Supabase: 3,
-    Cloudflare: 5,
+    Supabase: 4,
+    Cloudflare: 3,
+    Vercel: 2,
+    Stripe: 1,
     Average: 2,
   },
   fern: {
-    Stripe: 85,
-    Vercel: 60,
-    Supabase: 78,
-    Anthropic: 72,
-    Average: 45,
+    Cloudflare: 85,
+    Stripe: 84,
+    Supabase: 82,
+    Vercel: 75,
+    Average: 55,
   },
 };
 
