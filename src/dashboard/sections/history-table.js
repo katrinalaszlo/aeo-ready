@@ -5,7 +5,7 @@ export function renderHistoryTable(history) {
 
   const scans = [...history.scans].reverse().slice(0, 20);
 
-  let html = `<h2 id="history">Scan History</h2>\n<table>\n<tr><th>Date</th><th>agentic-seo</th><th>Cloudflare</th><th>Fern</th><th>Avg</th><th>Delta</th></tr>`;
+  let html = `<h2 id="history">Scan History</h2>\n<table>\n<tr><th>Date</th><th>agentic-seo</th><th>Cloudflare</th><th>Fern</th><th>Vercel</th><th>AgentGrade</th><th>Avg</th><th>Delta</th></tr>`;
 
   for (let i = 0; i < scans.length; i++) {
     const s = scans[i];
@@ -29,6 +29,8 @@ export function renderHistoryTable(history) {
   <td>${s.agenticSeo ?? "—"}</td>
   <td>${cf}</td>
   <td>${s.fern ?? "—"}</td>
+  <td>${s.vercel ?? "—"}</td>
+  <td>${s.agentgrade ?? "—"}</td>
   <td>${s.averageScore ?? "—"}</td>
   <td>${deltaStr}</td>
 </tr>`;

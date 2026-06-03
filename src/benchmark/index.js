@@ -5,29 +5,6 @@ import { runFern } from "./fern.js";
 import { runVercel } from "./vercel.js";
 import { runAgentgrade } from "./agentgrade.js";
 
-const REFERENCE_SCORES = {
-  agenticSeo: {
-    Stripe: 17,
-    Cloudflare: 20,
-    Supabase: 20,
-    Average: 19,
-  },
-  cloudflare: {
-    Supabase: 4,
-    Cloudflare: 3,
-    Vercel: 2,
-    Stripe: 1,
-    Average: 2,
-  },
-  fern: {
-    Cloudflare: 85,
-    Stripe: 84,
-    Supabase: 82,
-    Vercel: 75,
-    Average: 55,
-  },
-};
-
 const W = 52;
 
 export async function runAllBenchmarks(target, dir) {
@@ -125,15 +102,6 @@ function printBenchmarkBlock(name, key, b) {
         `    ${icon} ${chalk.dim((cat.name || "").padEnd(22))} ${chalk.dim(`${cat.score}/${cat.maxScore}`)}`,
       );
     }
-  }
-
-  const refs = REFERENCE_SCORES[key];
-  if (refs) {
-    const cmp = Object.entries(refs)
-      .sort((a, b) => b[1] - a[1])
-      .map(([n, s]) => `${n} ${s}`)
-      .join(" · ");
-    console.log(chalk.dim(`    vs ${cmp}`));
   }
 
   console.log("");

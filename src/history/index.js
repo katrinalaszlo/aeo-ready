@@ -20,6 +20,8 @@ export async function saveResult(result, baseDir) {
     cloudflare: result.benchmarks?.cloudflare?.score ?? null,
     cloudflareMax: result.benchmarks?.cloudflare?.maxScore ?? null,
     fern: result.benchmarks?.fern?.score ?? null,
+    vercel: result.benchmarks?.vercel?.score ?? null,
+    agentgrade: result.benchmarks?.agentgrade?.score ?? null,
   });
 
   writeFileSync(historyPath, JSON.stringify(history, null, 2));

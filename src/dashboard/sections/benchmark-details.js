@@ -1,15 +1,3 @@
-const REFERENCE_SCORES = {
-  agenticSeo: {
-    Cloudflare: 55,
-    Supabase: 52,
-    Vercel: 48,
-    Average: 25,
-    Stripe: 17,
-  },
-  cloudflare: { Cloudflare: 5, Vercel: 4, Supabase: 3, Stripe: 2, Average: 2 },
-  fern: { Stripe: 85, Supabase: 78, Anthropic: 72, Vercel: 60, Average: 45 },
-};
-
 export function renderBenchmarkDetails(result) {
   const { benchmarks } = result;
 
@@ -24,6 +12,12 @@ export function renderBenchmarkDetails(result) {
   }
   if (benchmarks.fern?.available) {
     html += renderSource("Fern", "fern", benchmarks.fern);
+  }
+  if (benchmarks.vercel?.available) {
+    html += renderSource("Vercel", "vercel", benchmarks.vercel);
+  }
+  if (benchmarks.agentgrade?.available) {
+    html += renderSource("AgentGrade", "agentgrade", benchmarks.agentgrade);
   }
 
   return html;
@@ -56,15 +50,6 @@ function renderSource(name, key, data) {
       const cls = catPct >= 80 ? "pass" : "fail";
       html += `\n    <div class="check ${cls}">${icon} ${esc(cat.name || "")} ${cat.score}/${cat.maxScore}</div>`;
     }
-  }
-
-  const refs = REFERENCE_SCORES[key];
-  if (refs) {
-    const lines = Object.entries(refs)
-      .sort((a, b) => b[1] - a[1])
-      .map(([n, s]) => `${n}: ${s}`)
-      .join(" · ");
-    html += `\n    <div class="compare">Others: ${lines}</div>`;
   }
 
   html += `\n  </div>\n</details>`;
