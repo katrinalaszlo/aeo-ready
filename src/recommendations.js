@@ -3,6 +3,7 @@ import { execSync } from "child_process";
 import { createInterface } from "readline";
 
 const BENCHMARK_NAMES = {
+  agenticSeo: "agentic-seo",
   cloudflare: "Cloudflare",
   fern: "Fern",
   vercel: "Vercel",

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
+import chalk from "chalk";
 import { scan } from "../src/scan.js";
 import { getHistory } from "../src/history/index.js";
 import { readFileSync } from "fs";
@@ -79,7 +80,14 @@ program
       if (s.cloudflare != null)
         parts.push(`cf:${s.cloudflare}/${s.cloudflareMax || "?"}`);
       if (s.fern != null) parts.push(`fern:${s.fern}`);
-      return `  ${date.padEnd(12)} ${String(s.averageScore).padEnd(6)} ${parts.join("  ")}  ${s.url}`;
+      const gc =
+        s.averageScore >= 80
+          ? chalk.green
+          : s.averageScore >= 50
+            ? chalk.yellow
+            : chalk.red;
+      const scoreStr = gc(String(s.averageScore).padEnd(6));
+      return `  ${date.padEnd(12)} ${scoreStr} ${parts.join("  ")}  ${s.url}`;
     });
     console.log(`  ${"Date".padEnd(12)} ${"Avg".padEnd(6)} Scores`);
     console.log(`  ${"─".repeat(60)}`);
