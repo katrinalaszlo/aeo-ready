@@ -4,7 +4,7 @@
   "description": "AEO benchmark aggregator. One scan, every score. Collects agentic-seo, Cloudflare, Fern, Vercel, and AgentGrade in one report.",
   "type": "module",
   "bin": {
-    "aeo-ready": "./bin/cli.js"
+    "aeo-ready": "bin/cli.js"
   },
   "main": "./src/index.js",
   "scripts": {
@@ -27,7 +27,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/katrinalaszlo/aeo-ready.git"
+    "url": "git+https://github.com/katrinalaszlo/aeo-ready.git"
   },
   "homepage": "https://github.com/katrinalaszlo/aeo-ready#readme",
   "bugs": {
