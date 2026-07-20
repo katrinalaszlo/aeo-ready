@@ -86,19 +86,26 @@ With --dir: agentic-seo 92/100 (A)
   ──────────────────────────────────────────────────
   Overall                                     85/100
 
-  Next steps
-    npx afdocs check https://yoursite.com         4 Fern issues
-    npx skills add katrinalaszlo/agent-serve      make your product agent-ready
+  4 recommendations (1 high priority)
 
-  Fix now? [y/N]
+  [v] View prompt  [c] Copy prompt  [q] Done
 ```
 
-Say `y` and aeo-ready analyzes failures across all 5 benchmarks, deduplicates overlapping issues, and fixes what it can:
+aeo-ready doesn't patch your files itself. It deduplicates the failed checks across all 5 benchmarks into a priority-ranked list (issues flagged by multiple benchmarks first) and writes an agent-executable prompt — `v` prints it, `c` copies it to your clipboard. Paste it into Claude, Cursor, or whatever agent you use to actually make the fixes:
 
-- **Auto-fixes** (with `--dir`): patches robots.txt for AI bots, creates agents.txt, generates sitemap.md, scaffolds llms.txt/AGENTS.md, adds missing pages to llms.txt
-- **Manual instructions**: prints actionable steps for server config (content negotiation, .md URLs, Vary header) and platform-specific issues
+```
+My site https://yoursite.com scored 85/100 on aeo-ready (AEO readiness scanner).
+Fix these issues to improve AI/agent discoverability.
+Items are ordered by priority — issues flagged by multiple benchmarks matter most.
+...
+## High priority (flagged by 3+ benchmarks)
+1. Allow AI bots in robots.txt [Cloudflare, Fern, Vercel]
+   Add User-agent / Allow rules for GPTBot, ClaudeBot, and other AI crawlers
+...
+Re-scan after: npx aeo-ready scan https://yoursite.com
+```
 
-Non-interactive in CI (`--json` or non-TTY).
+Skipped in `--json` mode. In CI or any non-TTY run, the prompt prints straight to stdout instead of showing the `[v]/[c]/[q]` menu.
 
 ## CI Mode
 
