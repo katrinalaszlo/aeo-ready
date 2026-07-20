@@ -15,15 +15,32 @@ const BENCHMARK_NAMES = {
   agentgrade: "AgentGrade",
 };
 
-export async function runAllBenchmarks(target, dir) {
+export async function runAllBenchmarks(target, dir, onProgress) {
   const isUrl = target && target.startsWith("http");
+  const start = Date.now();
+
+  const track = (name, promise) =>
+    onProgress
+      ? promise.then(
+          (v) => {
+            onProgress(name, true, Date.now() - start);
+            return v;
+          },
+          (err) => {
+            onProgress(name, false, Date.now() - start);
+            throw err;
+          },
+        )
+      : promise;
 
   const results = await Promise.allSettled([
-    runAgenticSeo(dir || target),
-    isUrl ? runCloudflare(target) : Promise.resolve(null),
-    isUrl ? runFern(target) : Promise.resolve(null),
-    isUrl ? runVercel(target) : Promise.resolve(null),
-    isUrl ? runAgentgrade(target) : Promise.resolve(null),
+    track("agentic-seo", runAgenticSeo(dir || target)),
+    isUrl ? track("Cloudflare", runCloudflare(target)) : Promise.resolve(null),
+    isUrl ? track("Fern", runFern(target)) : Promise.resolve(null),
+    isUrl ? track("Vercel", runVercel(target)) : Promise.resolve(null),
+    isUrl
+      ? track("AgentGrade", runAgentgrade(target))
+      : Promise.resolve(null),
   ]);
 
   return {

@@ -15,7 +15,16 @@ export async function scan(opts) {
     );
   }
 
-  const benchmarks = await runAllBenchmarks(url, dir);
+  const onProgress =
+    !json && process.stdout.isTTY
+      ? (name, ok, ms) => {
+          const icon = ok ? chalk.green("✓") : chalk.red("✗");
+          const secs = chalk.dim(`${(ms / 1000).toFixed(1)}s`);
+          console.log(`    ${icon} ${name.padEnd(14)} ${secs}`);
+        }
+      : undefined;
+
+  const benchmarks = await runAllBenchmarks(url, dir, onProgress);
   const scores = collectScores(benchmarks);
   const averageScore =
     scores.length > 0
