@@ -21,13 +21,21 @@ const KNOWN_FILES = [
   ".well-known/agent-skills/index.json",
 ];
 
-async function fetchText(url, headers) {
+async function fetchText(url, headers, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { redirect: "follow", headers });
+    const res = await fetch(url, {
+      redirect: "follow",
+      headers,
+      signal: controller.signal,
+    });
     if (!res.ok) return null;
     return await res.text();
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -176,6 +184,14 @@ export async function runBenchmark(target) {
       available: true,
     };
   } catch (err) {
+    if (err.killed || err.signal) {
+      return {
+        score: null,
+        maxScore: 100,
+        available: false,
+        reason: "agentic-seo timed out after 60s",
+      };
+    }
     if (err.message?.includes("not found") || err.message?.includes("ENOENT")) {
       return {
         score: null,

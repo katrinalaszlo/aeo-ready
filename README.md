@@ -23,11 +23,16 @@ Runs every major AEO (Agentic Engine Optimization) benchmark against your site i
 ## Usage
 
 ```bash
-npx aeo-ready scan yoursite.com                   # scan a URL (remote checks)
-npx aeo-ready scan yoursite.com --dir ./public    # full scan (local + remote)
-npx aeo-ready scan yoursite.com --json            # JSON output for CI
-npx aeo-ready scan yoursite.com --threshold 60    # exit 1 if below
+npx aeo-ready scan yoursite.com
 ```
+
+That's it — one command, no setup. Add flags only if you need them:
+
+| Flag | What it does |
+|------|--------------|
+| `--dir ./public` | full scan (local + remote) — recommended, see below |
+| `--json` | JSON output for CI |
+| `--threshold 60` | exit 1 if score is below N |
 
 ### Why `--dir`?
 

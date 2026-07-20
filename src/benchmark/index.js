@@ -6,6 +6,14 @@ import { runVercel } from "./vercel.js";
 import { runAgentgrade } from "./agentgrade.js";
 
 const W = 52;
+const ISSUES_URL = "https://github.com/katrinalaszlo/aeo-ready/issues";
+const BENCHMARK_NAMES = {
+  agenticSeo: "agentic-seo",
+  cloudflare: "Cloudflare",
+  fern: "Fern",
+  vercel: "Vercel",
+  agentgrade: "AgentGrade",
+};
 
 export async function runAllBenchmarks(target, dir) {
   const isUrl = target && target.startsWith("http");
@@ -29,25 +37,49 @@ export async function runAllBenchmarks(target, dir) {
 
 export function printBenchmarks(benchmarks) {
   const any = Object.values(benchmarks).some((b) => b && b.available);
-  if (!any) return;
 
+  if (any) {
+    console.log("");
+
+    if (benchmarks.agenticSeo?.available) {
+      printBenchmarkBlock("agentic-seo", "agenticSeo", benchmarks.agenticSeo);
+    }
+    if (benchmarks.cloudflare?.available) {
+      printBenchmarkBlock("Cloudflare", "cloudflare", benchmarks.cloudflare);
+    }
+    if (benchmarks.fern?.available) {
+      printBenchmarkBlock("Fern", "fern", benchmarks.fern);
+    }
+    if (benchmarks.vercel?.available) {
+      printBenchmarkBlock("Vercel", "vercel", benchmarks.vercel);
+    }
+    if (benchmarks.agentgrade?.available) {
+      printBenchmarkBlock("AgentGrade", "agentgrade", benchmarks.agentgrade);
+    }
+  }
+
+  printFailures(benchmarks);
+}
+
+function printFailures(benchmarks) {
+  const failed = Object.entries(benchmarks).filter(
+    ([, b]) => b && b.available === false,
+  );
+  if (failed.length === 0) return;
+
+  console.log(
+    chalk.dim(
+      `  ${failed.length} benchmark${failed.length > 1 ? "s" : ""} failed to run:`,
+    ),
+  );
+  for (const [key, b] of failed) {
+    const name = BENCHMARK_NAMES[key] || key;
+    console.log(chalk.dim(`    ${name} — ${b.reason || "unknown error"}`));
+  }
+  console.log(
+    chalk.dim("  Think this is a bug? Open an issue: ") + chalk.dim(ISSUES_URL),
+  );
   console.log("");
-
-  if (benchmarks.agenticSeo?.available) {
-    printBenchmarkBlock("agentic-seo", "agenticSeo", benchmarks.agenticSeo);
-  }
-  if (benchmarks.cloudflare?.available) {
-    printBenchmarkBlock("Cloudflare", "cloudflare", benchmarks.cloudflare);
-  }
-  if (benchmarks.fern?.available) {
-    printBenchmarkBlock("Fern", "fern", benchmarks.fern);
-  }
-  if (benchmarks.vercel?.available) {
-    printBenchmarkBlock("Vercel", "vercel", benchmarks.vercel);
-  }
-  if (benchmarks.agentgrade?.available) {
-    printBenchmarkBlock("AgentGrade", "agentgrade", benchmarks.agentgrade);
-  }
 }
 
 function scoreColor(pct) {

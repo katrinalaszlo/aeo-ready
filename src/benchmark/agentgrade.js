@@ -12,7 +12,12 @@ export async function runAgentgrade(url) {
     if (jsonStart === -1) {
       return { available: false, reason: "no JSON in output" };
     }
-    const result = JSON.parse(raw.slice(jsonStart));
+    let result;
+    try {
+      result = JSON.parse(raw.slice(jsonStart));
+    } catch {
+      return { available: false, reason: "agentgrade-cli returned malformed JSON" };
+    }
     const scoreObj = result.score || {};
 
     const categories = {};
@@ -47,6 +52,10 @@ export async function runAgentgrade(url) {
       available: true,
     };
   } catch (err) {
+    if (err.killed || err.signal) {
+      console.warn(`Warning: AgentGrade benchmark timed out for ${url}`);
+      return { available: false, reason: "agentgrade-cli timed out after 60s" };
+    }
     console.warn(
       `Warning: AgentGrade benchmark failed for ${url}: ${err.message}`,
     );

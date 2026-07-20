@@ -8,7 +8,12 @@ export async function runVercel(url) {
       { timeout: 60000, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] },
     );
 
-    const result = JSON.parse(output);
+    let result;
+    try {
+      result = JSON.parse(output);
+    } catch {
+      return { available: false, reason: "@vercel/agent-readability returned malformed JSON" };
+    }
     const score = result.score ?? 0;
     const maxScore = 100;
 
@@ -43,6 +48,10 @@ export async function runVercel(url) {
       available: true,
     };
   } catch (err) {
+    if (err.killed || err.signal) {
+      console.warn(`Warning: Vercel benchmark timed out for ${url}`);
+      return { available: false, reason: "@vercel/agent-readability timed out after 60s" };
+    }
     console.warn(`Warning: Vercel benchmark failed for ${url}: ${err.message}`);
     return { available: false, reason: err.message?.slice(0, 100) };
   }

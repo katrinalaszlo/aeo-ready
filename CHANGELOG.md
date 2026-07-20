@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.9
+
+- Fix agentic-seo pre-crawl hanging on slow/unresponsive sites — fetches now time out after 10s instead of waiting indefinitely
+- Fix AgentGrade/Vercel benchmarks throwing a raw JSON parse error when the underlying tool's output was truncated (usually by the 60s exec timeout) — now reports a clear "timed out" or "malformed JSON" reason instead
+- Scan output now lists benchmarks that failed to run with their reason, and points to the issue tracker to report bugs
+
 ## 1.5.0
 
 - Smart auto-fix engine — "Fix now?" actually fixes things
