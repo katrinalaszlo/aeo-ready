@@ -103,6 +103,11 @@ function scoreColor(pct) {
   return pct >= 80 ? chalk.green : pct >= 50 ? chalk.yellow : chalk.red;
 }
 
+function truncateMessage(text, max) {
+  if (text.length <= max) return text;
+  return text.slice(0, max - 1).trimEnd() + "…";
+}
+
 function printBenchmarkBlock(name, key, b) {
   const pct = b.maxScore > 0 ? Math.round((b.score / b.maxScore) * 100) : 0;
   const color = scoreColor(pct);
@@ -130,9 +135,12 @@ function printBenchmarkBlock(name, key, b) {
       console.log(chalk.dim(`    ${chalk.green(passed.length + " passed")}`));
     }
 
+    const termWidth = process.stdout.columns || 80;
     for (const check of failed) {
+      const prefix = `    ✗ ${check.id} `;
+      const budget = Math.max(20, termWidth - prefix.length);
       const msg = check.message
-        ? chalk.dim(` ${check.message.slice(0, 50)}`)
+        ? chalk.dim(` ${truncateMessage(check.message, budget)}`)
         : "";
       console.log(`    ${chalk.red("✗")} ${check.id}${msg}`);
     }
