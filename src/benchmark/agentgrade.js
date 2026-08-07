@@ -1,12 +1,25 @@
 import { execFileSync } from "child_process";
+import { closeSync, mkdtempSync, openSync, readFileSync, rmSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 
 export async function runAgentgrade(url) {
+  // agentgrade-cli exits before flushing large output to a pipe, truncating
+  // the JSON mid-document. A real file gets synchronous writes, so capture
+  // stdout there instead of piping it.
+  const dir = mkdtempSync(join(tmpdir(), "agentgrade-"));
+  const outFile = join(dir, "out.json");
   try {
-    const raw = execFileSync("npx", ["agentgrade-cli", url, "--json"], {
-      timeout: 60000,
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const fd = openSync(outFile, "w");
+    try {
+      execFileSync("npx", ["agentgrade-cli", url, "--json"], {
+        timeout: 120000,
+        stdio: ["ignore", fd, "pipe"],
+      });
+    } finally {
+      closeSync(fd);
+    }
+    const raw = readFileSync(outFile, "utf8");
 
     const jsonStart = raw.indexOf("{");
     if (jsonStart === -1) {
@@ -54,11 +67,13 @@ export async function runAgentgrade(url) {
   } catch (err) {
     if (err.killed || err.signal) {
       console.warn(`Warning: AgentGrade benchmark timed out for ${url}`);
-      return { available: false, reason: "agentgrade-cli timed out after 60s" };
+      return { available: false, reason: "agentgrade-cli timed out after 120s" };
     }
     console.warn(
       `Warning: AgentGrade benchmark failed for ${url}: ${err.message}`,
     );
     return { available: false, reason: err.message?.slice(0, 100) };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 }
