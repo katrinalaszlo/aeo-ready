@@ -15,41 +15,59 @@ const BENCHMARK_NAMES = {
   agentgrade: "AgentGrade",
 };
 
-export async function runAllBenchmarks(target, dir, onProgress) {
+// A benchmark that has not answered by then is reported as not available, so the JSON document still prints with
+// the others. agent-ready kills a scan at 900s; this stays under that.
+export const BENCHMARK_TIMEOUT_MS = 720_000;
+
+export async function runAllBenchmarks(
+  target,
+  dir,
+  onProgress,
+  timeoutMs = BENCHMARK_TIMEOUT_MS,
+) {
   const isUrl = target && target.startsWith("http");
-  const start = Date.now();
+  const settle = (name, run) =>
+    settleBenchmark(name, run, onProgress, timeoutMs);
 
-  const track = (name, promise) =>
-    onProgress
-      ? promise.then(
-          (v) => {
-            onProgress(name, true, Date.now() - start);
-            return v;
-          },
-          (err) => {
-            onProgress(name, false, Date.now() - start);
-            throw err;
-          },
-        )
-      : promise;
-
-  const results = await Promise.allSettled([
-    track("agentic-seo", runAgenticSeo(dir || target)),
-    isUrl ? track("Cloudflare", runCloudflare(target)) : Promise.resolve(null),
-    isUrl ? track("Fern", runFern(target)) : Promise.resolve(null),
-    isUrl ? track("Vercel", runVercel(target)) : Promise.resolve(null),
-    isUrl
-      ? track("AgentGrade", runAgentgrade(target))
-      : Promise.resolve(null),
+  const [agenticSeo, cloudflare, fern, vercel, agentgrade] = await Promise.all([
+    settle("agentic-seo", () => runAgenticSeo(dir || target)),
+    isUrl ? settle("Cloudflare", () => runCloudflare(target)) : null,
+    isUrl ? settle("Fern", () => runFern(target)) : null,
+    isUrl ? settle("Vercel", () => runVercel(target)) : null,
+    isUrl ? settle("AgentGrade", () => runAgentgrade(target)) : null,
   ]);
 
-  return {
-    agenticSeo: results[0].status === "fulfilled" ? results[0].value : null,
-    cloudflare: results[1].status === "fulfilled" ? results[1].value : null,
-    fern: results[2].status === "fulfilled" ? results[2].value : null,
-    vercel: results[3].status === "fulfilled" ? results[3].value : null,
-    agentgrade: results[4].status === "fulfilled" ? results[4].value : null,
-  };
+  return { agenticSeo, cloudflare, fern, vercel, agentgrade };
+}
+
+// Never rejects. A benchmark that throws, or that has not settled when the deadline fires, becomes
+// { available: false, reason }. The deadline timer keeps the process alive while a benchmark hangs with no open
+// handle; without it Node exits 0 the moment the event loop empties, before the scan ever prints its JSON.
+// durationMs is wall-clock time from the benchmark's start; benchmarks run in parallel, so they overlap.
+export async function settleBenchmark(name, run, onProgress, timeoutMs) {
+  const start = Date.now();
+  let timer;
+  const deadline = new Promise((resolve) => {
+    timer = setTimeout(
+      () =>
+        resolve({
+          available: false,
+          reason: `did not finish within ${Math.round(timeoutMs / 1000)}s`,
+        }),
+      timeoutMs,
+    );
+  });
+  let result;
+  try {
+    result = await Promise.race([run(), deadline]);
+  } catch (err) {
+    result = { available: false, reason: err.message?.slice(0, 100) };
+  } finally {
+    clearTimeout(timer);
+  }
+  const durationMs = Date.now() - start;
+  if (onProgress) onProgress(name, result.available === true, durationMs);
+  return { ...result, durationMs };
 }
 
 export function printBenchmarks(benchmarks) {

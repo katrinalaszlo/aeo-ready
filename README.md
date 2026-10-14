@@ -107,6 +107,8 @@ Re-scan after: npx aeo-ready scan https://yoursite.com
 
 Skipped in `--json` mode. In CI or any non-TTY run, the prompt prints straight to stdout instead of showing the `[v]/[c]/[q]` menu.
 
+`--json` prints one document: `{ url, timestamp, averageScore, benchmarks: { agenticSeo, cloudflare, fern, vercel, agentgrade } }`. Each benchmark has `available: true` with its `score`, `maxScore`, `grade`, `categories` and `checks`, or `available: false` with a `reason` (the tool's error, or `did not finish within 720s` when it never answered). Every benchmark also carries `durationMs`, the wall-clock milliseconds from its start to its result; the five run in parallel, so the times overlap and the slowest one is roughly the scan's length. A benchmark that fails or hangs never drops the document: the others still print.
+
 ## CI Mode
 
 ```yaml

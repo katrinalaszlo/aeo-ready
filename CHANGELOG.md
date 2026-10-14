@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.0
+
+- `scan --json` always prints its document. A benchmark that throws, or that never answers, is reported as `available: false` with a `reason`; before, when a benchmark neither answered nor kept the event loop alive, Node exited 0 with nothing on stdout and all five scores were lost (seen in agent-ready's leaderboard run: AgentGrade's service answered 503 and the scan printed only that error). Each benchmark now has a 720s deadline, after which it reads `did not finish within 720s`.
+- Every benchmark in the JSON carries `durationMs`, wall-clock milliseconds from its start to its result, so a slow one is visible.
+- The progress line in a terminal scan shows each benchmark's own time, not the time since the scan started.
+- `npm test` runs every `*.test.js` under `src/`, not only the first directory the shell matched.
+
 ## 1.7.9
 
 - Fix agentic-seo pre-crawl hanging on slow/unresponsive sites — fetches now time out after 10s instead of waiting indefinitely
