@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The Cloudflare benchmark reports its failed checks. isitagentready.com writes a failed check as `- FAIL id -- message` and a passing one as `- PASS id: message`; the check pattern knew only the `: ` form, so no FAIL line was ever parsed and every scan read as all checks passed next to a low level (composio.dev: Level 1/5 with "5/5 checks passed"; it has 21 checks, 4 passing). `checks` now holds every PASS, FAIL and OK line; `score` is still the level out of 5. The parser is `parseScan`, exported from `src/benchmark/cloudflare.js`, with a test on a real report.
+
 ## 1.8.0
 
 - `scan --json` always prints its document. A benchmark that throws, or that never answers, is reported as `available: false` with a `reason`; before, when a benchmark neither answered nor kept the event loop alive, Node exited 0 with nothing on stdout and all five scores were lost (seen in agent-ready's leaderboard run: AgentGrade's service answered 503 and the scan printed only that error). Each benchmark now has a 720s deadline, after which it reads `did not finish within 720s`.
