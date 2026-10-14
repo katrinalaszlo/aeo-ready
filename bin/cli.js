@@ -50,13 +50,18 @@ program
         json: opts.json || false,
       });
 
+      const code =
+        opts.threshold && result.averageScore < opts.threshold ? 1 : 0;
+
       if (opts.json) {
-        process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+        // Exit once the document is written: a benchmark that missed its deadline may still hold sockets open.
+        process.stdout.write(JSON.stringify(result, null, 2) + "\n", () =>
+          process.exit(code),
+        );
+        return;
       }
 
-      if (opts.threshold && result.averageScore < opts.threshold) {
-        process.exit(1);
-      }
+      if (code !== 0) process.exit(code);
     } catch (err) {
       console.error(`Error: ${err.message}`);
       process.exit(1);
