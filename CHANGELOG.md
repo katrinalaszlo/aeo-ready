@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.8.1
 
 - The Cloudflare benchmark reports its failed checks. isitagentready.com writes a failed check as `- FAIL id -- message` and a passing one as `- PASS id: message`; the check pattern knew only the `: ` form, so no FAIL line was ever parsed and every scan read as all checks passed next to a low level (composio.dev: Level 1/5 with "5/5 checks passed"; it has 21 checks, 4 passing). `checks` now holds every PASS, FAIL and OK line; `score` is still the level out of 5. The parser is `parseScan`, exported from `src/benchmark/cloudflare.js`, with a test on a real report.
 
